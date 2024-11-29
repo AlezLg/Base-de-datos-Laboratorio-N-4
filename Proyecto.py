@@ -1,6 +1,8 @@
 import sqlite3
 import os
-from prettytable import PrettyTable
+from prettytable import PrettyTable #pip install prettytable
+from datetime import datetime
+
 
 db = "Institucion.db"
 
@@ -82,6 +84,56 @@ def menu():
             print("Error: Debe ingresar un número. Intente nuevamente.")
 """------------------------------------------> FUNCIONES SECUNDARIAS <-----------------------"""
 
+def validar_datos_alumno(nombre, apellido, fecha_nacimiento, telefono, dni, direccion):
+    errores = []
+
+    if len(nombre) < 2:
+        errores.append("El nombre debe tener al menos 2 caracteres.")
+    if len(apellido) < 2:
+        errores.append("El apellido debe tener al menos 2 caracteres.")
+    try:
+        fecha = datetime.strptime(fecha_nacimiento, "%Y-%m-%d")
+        edad = (datetime.now() - fecha).days // 365
+        if edad < 18 or edad > 100:
+            errores.append("Debe ser mayor de 18 años y menor de 100 años.")
+    except ValueError:
+        errores.append("La fecha de nacimiento no tiene un formato válido (YYYY-MM-DD).")
+    if len(str(telefono)) < 4:
+        errores.append("El teléfono debe contener al menos 4 números.")
+    if  len(str(dni)) < 6:
+        errores.append("El DNI debe contener al menos 6 dígitos .")
+    if len(direccion) < 5:
+        errores.append("La dirección debe tener al menos 5 caracteres.")
+
+    if errores:
+        print("Estado: Error de validación\n")
+        for error in errores:
+            print(f"- {error}")
+        print("-"*15)
+        return False
+    else:
+        print("Validación exitosa...")
+        return True
+
+def validar_datos_materia(materia,docente):
+    errores = []
+
+    if len(materia) < 2:
+        errores.append("El nombre debe tener al menos 2 caracteres.")
+    if len(docente) < 3:
+        errores.append("El apellido debe tener al menos 3 caracteres.")
+
+    if errores:
+        print("Estado: Error de validación\n")
+        for error in errores:
+            print(f"- {error}")
+        print("-"*15)
+        return False
+    else:
+        print("Validación exitosa...")
+        return True
+
+
 def correccion():
     while True:
         corrector = input("¿Los datos están correctos? (s/n/salir) --> ").lower()
@@ -104,16 +156,18 @@ def Nuevo():
                 while True:
                     materia = input("\nIngrese la nueva materia --> ")
                     docente = input("Ingrese el docente --> ")
-                    if correccion():
-                        try:
-                            cursor.execute("INSERT INTO Curso (materia, docente) VALUES (?, ?);", (materia, docente))
-                            conexion.commit()
-                            print("Nueva materia agregada correctamente.")
-                            break
-                        except sqlite3.IntegrityError as e:
-                            print(f"Error al agregar la materia: {e}")
-                    else:
-                        print("Reingrese los datos de la materia.")
+                    if validar_datos_materia(materia,docente):
+                        if correccion():
+                            try:
+                                cursor.execute("INSERT INTO Curso (materia, docente) VALUES (?, ?);", (materia, docente))
+                                conexion.commit()
+                                print("Nueva materia agregada correctamente.")
+                                break
+                            except sqlite3.IntegrityError as e:
+                                print(f"Error al agregar la materia: {e}")
+                        else:
+                            print("Reingrese los datos de la materia.")
+                    else: continue
 
             elif num == 2:
                 dni = int(input("\nIngrese el DNI del alumno --> "))
@@ -132,16 +186,18 @@ def Nuevo():
                         fecha_de_nacimiento = input("Ingrese la fecha de nacimiento (YYYY-MM-DD) --> ")
                         telefono = int(input("Ingrese el número de teléfono --> "))
                         direccion = input("Ingrese la dirección --> ")
-                        if correccion():
-                            cursor.execute("""
-                                INSERT INTO Estudiante (nombre, apellido, dni, fecha_de_nacimiento, telefono, direccion)
-                                VALUES (?, ?, ?, ?, ?, ?);
-                            """, (nombre, apellido, dni, fecha_de_nacimiento, telefono, direccion))
-                            conexion.commit()
-                            id_estudiante = cursor.lastrowid  
-                            break
-                        else:
-                            print("Reingrese los datos del estudiante.")
+                        if validar_datos_alumno(nombre,apellido,fecha_de_nacimiento,telefono,dni,direccion):
+                            if correccion():
+                                cursor.execute("""
+                                    INSERT INTO Estudiante (nombre, apellido, dni, fecha_de_nacimiento, telefono, direccion)
+                                    VALUES (?, ?, ?, ?, ?, ?);
+                                """, (nombre, apellido, dni, fecha_de_nacimiento, telefono, direccion))
+                                conexion.commit()
+                                id_estudiante = cursor.lastrowid  
+                                break
+                            else:
+                                print("Reingrese los datos del estudiante.")
+                        else: continue
 
 
                 cursor.execute("SELECT idCurso, materia, docente FROM Curso;")
